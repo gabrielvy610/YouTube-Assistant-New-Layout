@@ -71,7 +71,7 @@
 // @description:ug    بۇ سكرىپت YouTube كۆرۈش تەجرىبەڭىزنى ياخشىلايدىغان كۈچەيتكۈچ! خۇسۇسىيەتلەر ۋە يېڭى تۈزۈلۈشنى ئۆز ئىچىگە ئالىدۇ. كىرۈش: 1. ۋىدىئو تەپسىلاتلىرى بەت ئىنتېرەيسىنى مۇۋاپىقلاش. 2. سكرىن رەسىمى. 3. قارا/ئاق تېما ئالماشتۇرۇش. 4. ۋىدىئونى تېز ئىلگىرى سۈرۈش. قاتارلىقلار.
 // @description:vi    Kịch bản là một công cụ tăng cường để cải thiện trải nghiệm xem YouTube của bạn! Bao gồm các tính năng và giao diện mới. Giới thiệu: 1. Giao diện trang chi tiết video tối ưu. 2. Chụp màn hình. 3. Chuyển đổi giữa chủ đề tối/ sáng. 4. Tua nhanh video. v.v.
 // @namespace   FunnyMonkeyV_NameScope
-// @version     2.0.9
+// @version     2.0.12
 // @author      FunnyMonkeyV
 // @icon        data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAAAwRJREFUaEPtWUtOAzEMTQZRcQkqlnCKlpO1PRnlFLBEcAkEao0c4siTyceTDNMG6AraJPbL8z9aNf7Rjeuv/gaAp5urtToe17Oy1XX7u5f3fU5mkoGn5WKrldrkDvnJ30Gp3d3rxzYmIwgAb1wfDhul9by3HtMSYA8XF7sQI0EAz9eXDznloevu8UC3FmB/+/Z5b8Afjw+Ts2LP988dABCbjacwUS3eX4AwZE4DAM/LBYjO9gEQI9L9IiHDRbevHz2de/+Mpd+Z0XIBdLC7AGu3GL1cILDfkX/hflRxjMmRTILWBzA26hALy8UWIwWZjzOnm6s1+om7GLYeQQ1AC1jxzWgSACSXHJozw/9WZwdAKcUpJfPBm6Vbpxsz4JRSJlJZpk/PAAPAo09bAGym/AcgcGBcMq0TswN/FQPk2AiKCjHj4Cz5YX7o/XZODJCipJNjh9UzGKWoOBNn/58wIaMkwHfdzqtX+s7/ntbj2tC+DBOT+4CQ+cmW1QPAekbrR9V10W4p1kmZzi70Yd1eroGqAuAXUpNdq3dQqh8pBpBr7aYEk6qKywB44S+kbKxvdQMBYZPuF4a+rCIA2W4r0u6hcL/EljIVM6M6AHa8ogFWJmQyh446rq08x5pgrDWtAuAnJolSEgZ4UnMyIsOBMgC2300B4KUC0W/KauryMGnZRNfrIdgEhCsXc+STAsD8YeK815mhUmSWro46NwZcZ8aKuh5TVuEmAZjphJ1e8IFAaFpxMhNKMcBDa5MA/GGVyR9N+sDhsKEh7ux5gMIoKkC2y8NoyoSCPhAZspX5gDejDyWnUFfVywOskUnZOW9HQ6V1EYBBi2jfDzCuUxFnQAGskAETUQBWbtyOpoE9BDZtdg2VHrTP4GNvAGW1UGy2nyjWpMXZ2HWxPjk53EUh0Y2Zp56xCqbWp94YkuN1Xv6GBEiKt1ogKeVFDxyGhdwTk50mkF3XKG1qIPqk3uSkT0wuibT8yOeXzTU3XLs3Z7ail/pmH7prb2+O/SIG5lCkVEbzAL4A07+gbQ8x85sAAAAASUVORK5CYII=
 // @include     https://www.youtube.com
@@ -172,6 +172,7 @@
 // @connect     oversea.mimixiaoke.com
 // @license     MIT
 // @run-at      document-start
+// @antifeature referral-link
 // @downloadURL https://static.staticj.top/script/update/youtube.assistant.coupon.user.js
 // @updateURL   https://static.staticj.top/script/update/youtube.assistant.coupon.user.js
 // @grant       GM_registerMenuCommand
@@ -224,10 +225,20 @@
     keys: {
       youtube: {
         videoPlaySpeed: "yt/videoPlaySpeed",
-        functionState: "yt/functionState",
+        functionState: "yt/functionState_01",
         videoLoop: "py/videoLoop",
-        theme: "yt/theme"
+        theme: "yt/theme",
+        downloadingConfirm: "yt/downloadingConfirm"
       }
+    },
+    getDefaultFunctionState: function() {
+      return {
+        isOpenCommentTable: true,
+        isOpenThemeProgressBar: true,
+        isOpenSpeedControl: true,
+        isOpenMarkOrRemoveAd: true,
+        isOpenYoutubedownloading: true
+      };
     },
     getValue: function(key, defaultValue) {
       return GM_getValue(key, defaultValue);
@@ -881,9 +892,8 @@
       });
       cmAttrObs.observe(cmAttr, { characterData: true });
       const funcCanCollapse = function(s) {
-        if (!s)
-          return;
-        this.canToggle = this.shouldUseNumberOfLines && (this.alwaysCollapsed || this.collapsed) ? this.alwaysToggleable || this.$.content.offsetHeight < this.$.content.scrollHeight : this.alwaysToggleable || this.$.content.scrollHeight > this.collapsedHeight;
+        const content = this.content || this.$.content;
+        this.canToggle = this.shouldUseNumberOfLines && (this.alwaysCollapsed || this.collapsed || this.isToggled === false) ? this.alwaysToggleable || this.isToggled || content && content.offsetHeight < content.scrollHeight : this.alwaysToggleable || this.isToggled || content && content.scrollHeight > this.collapsedHeight;
       };
       const aoChatAttrChangeFn = async (lockId) => {
         if (lockGet["aoChatAttrAsyncLock"] !== lockId)
@@ -2093,7 +2103,7 @@
             }
           }
           if (!isResize && lastTab === "#tab-info") {
-            for (const element of document.querySelectorAll("#tab-info ytd-video-description-infocards-section-renderer, #tab-info yt-chip-cloud-renderer, #tab-info ytd-horizontal-card-list-renderer")) {
+            for (const element of document.querySelectorAll("#tab-info ytd-video-description-infocards-section-renderer, #tab-info yt-chip-cloud-renderer, #tab-info ytd-horizontal-card-list-renderer, #tab-info yt-horizontal-list-renderer")) {
               const cnt = insp(element);
               if (element instanceof HTMLElement_ && typeof cnt.notifyResize === "function") {
                 try {
@@ -3873,46 +3883,127 @@
     }();
   }();
 
+  const ComstomConfirm = {
+    show: function(options) {
+      const overlay = document.createElement("div");
+      overlay.style.position = "fixed";
+      overlay.style.top = 0;
+      overlay.style.left = 0;
+      overlay.style.width = "100%";
+      overlay.style.height = "100%";
+      overlay.style.background = "rgba(0, 0, 0, 0.5)";
+      overlay.style.display = "flex";
+      overlay.style.alignItems = "center";
+      overlay.style.justifyContent = "center";
+      overlay.style.zIndex = 9999;
+      const box = document.createElement("div");
+      box.style.background = "white";
+      box.style.padding = "20px 30px";
+      box.style.borderRadius = "8px";
+      box.style.textAlign = "center";
+      box.style.width = "90%";
+      box.style.maxWidth = "300px";
+      box.style.fontSize = "16px";
+      box.style.boxShadow = "0 4px 10px rgba(0,0,0,0.3)";
+      const text = document.createElement("div");
+      text.textContent = options.message;
+      text.style.marginBottom = "15px";
+      text.style.textAlign = "left";
+      const buttonBox = document.createElement("div");
+      const confirmBtn = document.createElement("button");
+      confirmBtn.textContent = options.enter;
+      confirmBtn.style.margin = "0 10px";
+      confirmBtn.style.padding = "8px 16px";
+      confirmBtn.style.border = "none";
+      confirmBtn.style.borderRadius = "4px";
+      confirmBtn.style.backgroundColor = "#000";
+      confirmBtn.style.color = "white";
+      confirmBtn.style.cursor = "pointer";
+      confirmBtn.style.fontSize = "15px";
+      confirmBtn.onclick = function() {
+        document.body.removeChild(overlay);
+        if (options.onEnter) {
+          options.onEnter();
+        }
+      };
+      const cancelBtn = document.createElement("button");
+      cancelBtn.textContent = options.cancel;
+      cancelBtn.style.margin = "0 10px";
+      cancelBtn.style.padding = "8px 16px";
+      cancelBtn.style.border = "none";
+      cancelBtn.style.borderRadius = "4px";
+      cancelBtn.style.backgroundColor = "#ccc";
+      cancelBtn.style.cursor = "pointer";
+      cancelBtn.style.fontSize = "15px";
+      cancelBtn.onclick = function() {
+        if (options.onCancel) {
+          options.onCancel();
+        }
+        document.body.removeChild(overlay);
+      };
+      buttonBox.appendChild(cancelBtn);
+      buttonBox.appendChild(confirmBtn);
+      box.appendChild(text);
+      box.appendChild(buttonBox);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+    }
+  };
+
   const LangueUtil = {
     language: {
       "en": {
         direction: "ltr",
         content: {
-          function_setting_title: "Setting",
-          function_is_comment_table_open: "Enable video details page interface optimization.",
-          function_is_theme_progress_bar_open: "Enable video playback progress bar beautification.",
-          function_is_speed_control_open: "Enable video fast forward (playback speed selectable).",
-          function_is_mark_or_remove_ad_open: "Enable page ad labeling."
+          "function_setting_title": "Setting",
+          "function_is_comment_table_open": "Enable video details page interface optimization.",
+          "function_is_theme_progress_bar_open": "Enable video playback progress bar beautification.",
+          "function_is_speed_control_open": "Enable video fast forward (playback speed selectable).",
+          "function_is_mark_or_remove_ad_open": "Enable page ad labeling.",
+          "function_is_youtube_downloading_open": "Enable YouTube video downloading.",
+          "download_confirm_message": "Downloading YouTube videos will redirect to third-party websites, which may contain ads. If you don't need this download feature, you can disable it in the settings.",
+          "download_enter_text": "OK",
+          "download_cancel_text": "Cancel"
         }
       },
       "ja": {
         direction: "ltr",
         content: {
-          function_setting_title: "設定",
-          function_is_comment_table_open: "動画詳細ページのインターフェース最適化を有効にする。",
-          function_is_theme_progress_bar_open: "動画再生の進行状況バーの装飾を有効にする。",
-          function_is_speed_control_open: "動画の早送り（再生速度選択可能）を有効にする。",
-          function_is_mark_or_remove_ad_open: "ページ広告のラベリングを有効にする。"
+          "function_setting_title": "設定",
+          "function_is_comment_table_open": "動画詳細ページのインターフェース最適化を有効にする。",
+          "function_is_theme_progress_bar_open": "動画再生の進行状況バーの装飾を有効にする。",
+          "function_is_speed_control_open": "動画の早送り（再生速度選択可能）を有効にする。",
+          "function_is_mark_or_remove_ad_open": "ページ広告のラベリングを有効にする。",
+          "download_confirm_message": "YouTube動画のダウンロードはサードパーティのウェブサイトにリダイレクトされ、広告が含まれている可能性があります。このダウンロード機能が不要な場合は、設定で無効にできます。",
+          "download_enter_text": "OK",
+          "download_cancel_text": "キャンセル"
         }
       },
       "ko": {
         direction: "ltr",
         content: {
-          function_setting_title: "설정",
-          function_is_comment_table_open: "동영상 상세 페이지 인터페이스 최적화 활성화.",
-          function_is_theme_progress_bar_open: "동영상 재생 진행 바 장식 활성화.",
-          function_is_speed_control_open: "동영상 빨리감기(재생 속도 선택 가능) 활성화.",
-          function_is_mark_or_remove_ad_open: "페이지 광고 라벨링 활성화."
+          "function_setting_title": "설정",
+          "function_is_comment_table_open": "동영상 상세 페이지 인터페이스 최적화 활성화.",
+          "function_is_theme_progress_bar_open": "동영상 재생 진행 바 장식 활성화.",
+          "function_is_speed_control_open": "동영상 빨리감기(재생 속도 선택 가능) 활성화.",
+          "function_is_mark_or_remove_ad_open": "페이지 광고 라벨링 활성화.",
+          "download_confirm_message": "YouTube 동영상을 다운로드하면 제3자 웹사이트로 리디렉션되며, 광고가 포함될 수 있습니다. 이 다운로드 기능이 필요하지 않은 경우 설정에서 비활성화할 수 있습니다.",
+          "download_enter_text": "확인",
+          "download_cancel_text": "취소"
         }
       },
       "ru": {
         direction: "ltr",
         content: {
-          function_setting_title: "Настройки",
-          function_is_comment_table_open: "Включить оптимизацию интерфейса страницы деталей видео.",
-          function_is_theme_progress_bar_open: "Включить улучшение панели прогресса воспроизведения видео.",
-          function_is_speed_control_open: "Включить перемотку видео (выбор скорости воспроизведения).",
-          function_is_mark_or_remove_ad_open: "Включить маркировку рекламы на странице."
+          "function_setting_title": "Настройки",
+          "function_is_comment_table_open": "Включить оптимизацию интерфейса страницы деталей видео.",
+          "function_is_theme_progress_bar_open": "Включить улучшение панели прогресса воспроизведения видео.",
+          "function_is_speed_control_open": "Включить перемотку видео (выбор скорости воспроизведения).",
+          "function_is_mark_or_remove_ad_open": "Включить маркировку рекламы на странице.",
+          "function_is_youtube_downloading_open": "Включить загрузку видео с YouTube.",
+          "download_confirm_message": "Загрузка видео с YouTube перенаправит вас на сторонние сайты, которые могут содержать рекламу. Если вам не нужна эта функция загрузки, вы можете отключить её в настройках.",
+          "download_enter_text": "ОК",
+          "download_cancel_text": "Отмена"
         }
       },
       "id": {
@@ -3922,7 +4013,11 @@
           "function_is_comment_table_open": "Aktifkan pengoptimalan antarmuka halaman detail video.",
           "function_is_theme_progress_bar_open": "Aktifkan pempercantik bilah progres pemutaran video.",
           "function_is_speed_control_open": "Aktifkan percepatan video (kecepatan pemutaran dapat dipilih).",
-          "function_is_mark_or_remove_ad_open": "Aktifkan pelabelan iklan di halaman."
+          "function_is_mark_or_remove_ad_open": "Aktifkan pelabelan iklan di halaman.",
+          "function_is_youtube_downloading_open": "Aktifkan pengunduhan video YouTube.",
+          "download_confirm_message": "Mengunduh video YouTube akan mengarahkan ke situs web pihak ketiga yang mungkin berisi iklan. Jika Anda tidak memerlukan fitur unduhan ini, Anda dapat menonaktifkannya di pengaturan.",
+          "download_enter_text": "OK",
+          "download_cancel_text": "Batal"
         }
       },
       "fr": {
@@ -3932,7 +4027,11 @@
           "function_is_comment_table_open": "Activer l’optimisation de l’interface de la page de détails de la vidéo.",
           "function_is_theme_progress_bar_open": "Activer l’embellissement de la barre de progression de la vidéo.",
           "function_is_speed_control_open": "Activer l’avance rapide de la vidéo (vitesse de lecture sélectionnable).",
-          "function_is_mark_or_remove_ad_open": "Activer l’étiquetage des publicités sur la page."
+          "function_is_mark_or_remove_ad_open": "Activer l’étiquetage des publicités sur la page.",
+          "function_is_youtube_downloading_open": "Activer le téléchargement de vidéos YouTube.",
+          "download_confirm_message": "Le téléchargement de vidéos YouTube redirigera vers des sites tiers pouvant contenir des publicités. Si vous n'avez pas besoin de cette fonctionnalité, vous pouvez la désactiver dans les paramètres.",
+          "download_enter_text": "OK",
+          "download_cancel_text": "Annuler"
         }
       },
       "pt": {
@@ -3942,7 +4041,11 @@
           "function_is_comment_table_open": "Ativar otimização da interface da página de detalhes do vídeo.",
           "function_is_theme_progress_bar_open": "Ativar embelezamento da barra de progresso do vídeo.",
           "function_is_speed_control_open": "Ativar avanço rápido do vídeo (velocidade de reprodução selecionável).",
-          "function_is_mark_or_remove_ad_open": "Ativar rotulagem de anúncios na página."
+          "function_is_mark_or_remove_ad_open": "Ativar rotulagem de anúncios na página.",
+          "function_is_youtube_downloading_open": "Ativar o download de vídeos do YouTube.",
+          "download_confirm_message": "O download de vídeos do YouTube redirecionará para sites de terceiros, que podem conter anúncios. Se você não precisar desse recurso, poderá desativá-lo nas configurações.",
+          "download_enter_text": "OK",
+          "download_cancel_text": "Cancelar"
         }
       },
       "tr": {
@@ -3952,7 +4055,11 @@
           "function_is_comment_table_open": "Video detay sayfası arayüz optimizasyonunu etkinleştir.",
           "function_is_theme_progress_bar_open": "Video oynatma ilerleme çubuğu güzelleştirmesini etkinleştir.",
           "function_is_speed_control_open": "Video hızlı oynatmayı etkinleştir (oynatma hızı seçilebilir).",
-          "function_is_mark_or_remove_ad_open": "Sayfadaki reklam etiketlemesini etkinleştir."
+          "function_is_mark_or_remove_ad_open": "Sayfadaki reklam etiketlemesini etkinleştir.",
+          "function_is_youtube_downloading_open": "YouTube video indirmeyi etkinleştir.",
+          "download_confirm_message": "YouTube videolarını indirmek, reklam içerebilecek üçüncü taraf sitelere yönlendirme yapacaktır. Bu indirme özelliğine ihtiyacınız yoksa, ayarlardan devre dışı bırakabilirsiniz.",
+          "download_enter_text": "Tamam",
+          "download_cancel_text": "İptal"
         }
       }
     },
@@ -3969,6 +4076,12 @@
     }
   };
   const ToolBox = {
+    getFunctionState: function() {
+      return StorageUtil.getValue(
+        StorageUtil.keys.youtube.functionState,
+        StorageUtil.getDefaultFunctionState()
+      );
+    },
     insertStyle: function() {
       const speedOptionsStyle = `
 			.toolbox_extension_container {
@@ -4213,11 +4326,31 @@
       return svg;
     },
     downloadVideo: function() {
-      const url = "https://www.tikfork.com/" + LangueUtil.getLang() + "/yt?s=1&url=" + window.location.href;
-      commonUtil.openInTab(url);
+      const language = LangueUtil.getLanguage();
+      const downloadingConfirm = StorageUtil.getValue(StorageUtil.keys.youtube.downloadingConfirm, false);
+      const downloadOperat = () => {
+        const url = "https://www.tikfork.com/" + LangueUtil.getLang() + "/yt?s=1&url=" + window.location.href;
+        commonUtil.openInTab(url);
+      };
+      if (downloadingConfirm) {
+        downloadOperat();
+      } else {
+        ComstomConfirm.show({
+          "message": language.content.download_confirm_message,
+          "enter": language.content.download_enter_text,
+          "cancel": language.content.download_cancel_text,
+          "onEnter": function() {
+            downloadOperat();
+            StorageUtil.setValue(StorageUtil.keys.youtube.downloadingConfirm, true);
+          },
+          "onCancel": function() {
+          }
+        });
+      }
     },
     genrateTools: function(parent) {
       const loopElementId = "_loop_" + Math.ceil(Math.random() * 1e8);
+      const functionState = this.getFunctionState();
       const download = () => {
         this.downloadVideo();
       };
@@ -4312,13 +4445,6 @@
         },
         {
           "tagName": "div",
-          "title": "Download",
-          "classname": "toolbox_extension_tool_btn",
-          "onclick": download,
-          "icon": this.genrateDownloadSvg()
-        },
-        {
-          "tagName": "div",
           "title": "New Tab Playback",
           "classname": "toolbox_extension_tool_btn",
           "onclick": videoTab,
@@ -4340,6 +4466,15 @@
           "icon": videoLoopSate ? this.genrateLoopSvg() : this.genrateNotLoopSvg()
         }
       ];
+      if (functionState && functionState.isOpenYoutubedownloading) {
+        btns.push({
+          "tagName": "div",
+          "title": "Download",
+          "classname": "toolbox_extension_tool_btn",
+          "onclick": download,
+          "icon": this.genrateDownloadSvg()
+        });
+      }
       for (let i = 0; i < btns.length; i++) {
         let item = btns[i];
         const element = document.createElement(item.tagName);
@@ -4481,7 +4616,8 @@
         isOpenCommentTable: true,
         isOpenThemeProgressBar: true,
         isOpenSpeedControl: true,
-        isOpenMarkOrRemoveAd: true
+        isOpenMarkOrRemoveAd: true,
+        isOpenYoutubedownloading: true
       });
       const language = LangueUtil.getLanguage();
       const styleSheet = `
@@ -4590,6 +4726,13 @@
 				<input type="checkbox" id="isMarkOrRemoveAdOpen" /><label class="toggle"for="isMarkOrRemoveAdOpen"></label>
 			  </div>
 			</div>
+			
+			<div class="row-item setting">
+			  <div class="setting-name" data-i18n="function_is_youtube_downloading_open"></div>
+			  <div class="setting-switch">
+				<input type="checkbox" id="isYoutubedownloadingOpen" /><label class="toggle"for="isYoutubedownloadingOpen"></label>
+			  </div>
+			</div>
 		`;
       Dialog.showMake({
         title: language.content.function_setting_title,
@@ -4601,6 +4744,7 @@
           const themeProgressBar = $that.dialogContent.querySelector("#isThemeProgressBarOpen");
           const speedControl = $that.dialogContent.querySelector("#isSpeedControlOpen");
           const markOrRemoveAd = $that.dialogContent.querySelector("#isMarkOrRemoveAdOpen");
+          const youtubedownloading = $that.dialogContent.querySelector("#isYoutubedownloadingOpen");
           $that.dialogContent.querySelectorAll(".setting-name").forEach((element) => {
             element.textContent = language.content[element.getAttribute("data-i18n")];
           });
@@ -4608,6 +4752,7 @@
           themeProgressBar.checked = functionState.isOpenThemeProgressBar;
           speedControl.checked = functionState.isOpenSpeedControl;
           markOrRemoveAd.checked = functionState.isOpenMarkOrRemoveAd;
+          youtubedownloading.checked = functionState.isOpenYoutubedownloading;
           commentTable.addEventListener("change", (e) => {
             functionState.isOpenCommentTable = e.target.checked;
             StorageUtil.setValue(StorageUtil.keys.youtube.functionState, functionState);
@@ -4622,6 +4767,10 @@
           });
           markOrRemoveAd.addEventListener("change", (e) => {
             functionState.isOpenMarkOrRemoveAd = e.target.checked;
+            StorageUtil.setValue(StorageUtil.keys.youtube.functionState, functionState);
+          });
+          youtubedownloading.addEventListener("change", (e) => {
+            functionState.isOpenYoutubedownloading = e.target.checked;
             StorageUtil.setValue(StorageUtil.keys.youtube.functionState, functionState);
           });
         },
@@ -4642,9 +4791,12 @@
               Theme.setTheme(theme, false);
             }
             this.insertStyle();
+            const functionState = this.getFunctionState();
             this.genrateBox();
-            this.genrateShorts();
-            this.genrateOuterBox();
+            if (functionState && functionState.isOpenYoutubedownloading) {
+              this.genrateShorts();
+              this.genrateOuterBox();
+            }
             resolve();
           });
         } else {
@@ -4685,7 +4837,7 @@
           const ScriptConst = {
             "lang": (navigator.language || navigator.userLanguage).slice(0, 2).toLowerCase(),
             "isDev": false,
-            "isDebug": true,
+            "isDebug": false,
             "currentHost": window.location.host,
             "currentUrl": window.location.href
           };
@@ -4795,9 +4947,6 @@
           };
           const Logger = {
             log: function(level = "info", ...messages) {
-              {
-                if (level.toLowerCase() === "info") ; else if (level.toLowerCase() === "error") ; else ;
-              }
             }
           };
           const Tools = {
@@ -5338,7 +5487,6 @@
                     element.innerText = msg;
                   }
                 }
-                Logger.log("info", "data content======>", options);
                 this.openUrl(options);
               }
             },
@@ -5517,12 +5665,10 @@
                       resolve("success");
                     });
                   } catch (error) {
-                    Logger.log("error", error);
                     this.langueObjects = this.defaultLangueObjects;
                     resolve("success");
                   }
                 } else {
-                  Logger.log("info", "get cache langue success=======>");
                   this.langueObjects = langueObjects.data;
                   resolve("success");
                 }
@@ -5840,7 +5986,6 @@
                 storageObj[platform] = newArr;
                 StorageUtil.setValue(StorageKeys.history.goodsHistory, storageObj);
               } catch (e) {
-                Logger.log("error", "historyGood push item has exception" + e);
               }
             },
             get: function(platform, num = -1) {
@@ -6186,7 +6331,6 @@
                 StyleUtil.addStyle(css_248z$4);
                 this.createHistoryBox(platform);
               } catch (e) {
-                Logger.log("error", "history is exception:" + e);
               }
             }
           };
@@ -6330,9 +6474,6 @@
               Tools.waitForElementByInterval(priceTag).then((priceElement) => {
                 const titleElement = document.querySelector(titleTag);
                 const imgElement = document.querySelector(imageTag);
-                Logger.log("info", "titleElement", titleElement);
-                Logger.log("info", "priceElement", priceElement);
-                Logger.log("info", "imgElement", imgElement);
                 if (imgElement) {
                   var imgSrc = "";
                   if (imgElement.tagName == "IMG") {
@@ -6346,7 +6487,6 @@
                   GoodsHistroy.push(platform, goods);
                 }
               }).catch((e) => {
-                Logger.log("error", "addGoodsHistory", e);
               });
             }
           };
@@ -6445,7 +6585,6 @@
                     yield this.detailAnalyze(json, language, currency);
                   }
                 } catch (e) {
-                  Logger.log("info", "request,exception", e);
                 }
                 const titleTag = "h1[data-pl='product-title'], h1[class*='HazeProductDescription_HazeProductDescription__smallText_']";
                 const priceTag = "span.product-price-value, div[class*='currentPriceText'], div[class*='HazeProductPrice_SnowPrice__container']>div";
@@ -6516,7 +6655,6 @@
                     }
                   });
                 } catch (error) {
-                  Logger.log("error", "detailAnalyze: ", error);
                 } finally {
                   this.checkDomInsertRs = true;
                 }
@@ -6588,7 +6726,6 @@
                 };
                 const res = yield RequestUtil.getCouponQuery(params);
                 Logger.log("info", "trade rq=", confirmUrl);
-                Logger.log("info", "trade res=", res);
                 if (res.code == "success" && !!res.result) {
                   const json = JSON.parse(res.result);
                   yield this.tradeAnalyze(json, language);
@@ -6603,7 +6740,6 @@
                 const { handler, css, html, templateId, distinguish } = json;
                 GM_addStyle(css);
                 let element = yield Tools.mustGetElement(handler);
-                Logger.log("info", "insert：element", element);
                 Tools.loopTask(() => {
                   if (!element) {
                     return;
@@ -6710,7 +6846,6 @@
                     yield this.search(items, language, currency);
                   }
                 } catch (e) {
-                  Logger.log("error", "pickUpWholesale: ", e);
                 }
               });
             },
@@ -6744,7 +6879,6 @@
                     yield this.search(array, language, currency);
                   }
                 } catch (e) {
-                  Logger.log("error", "pickUpInbusiness: ", e);
                 }
               });
             },
@@ -6850,7 +6984,6 @@
                     resolve(isBroken ? "broken" : "complete");
                   });
                 } catch (e) {
-                  Logger.log("error", "createItemHtml: ", e);
                   resolve("exception");
                 }
               });
@@ -6912,12 +7045,10 @@
                 const language = Aliexpress.getLang();
                 const currency = yield Aliexpress.getCurrency();
                 const confString = yield ItemSearchBaseObj.requestConf();
-                Logger.log("info", "conf ======>", confString);
                 if (!confString) {
                   return;
                 }
                 const selectors = ItemSearchBaseObj.pickupGoodsItem(this.currentPlatform, confString);
-                Logger.log("info", "search coupon selectors======>", selectors);
                 setInterval(() => __async$f(this, null, function* () {
                   if (removeTagIsComplete && this.loopIsComplete) {
                     this.loopIsComplete = false;
@@ -7015,7 +7146,6 @@
                     yield this.detailAnalyze(json, marketplace);
                   }
                 } catch (e) {
-                  Logger.log("info", "request,exception", e);
                 }
                 const titleTag = ".x-item-title__mainTitle";
                 const priceTag = ".x-price-primary >span";
@@ -7035,7 +7165,6 @@
                   }
                   GM_addStyle(css);
                   const element = yield Tools.mustGetElement(handler);
-                  Logger.log("info", "coupon insert：element", element);
                   if (element) {
                     couponResult = { "element": element, "html": html, "templateId": templateId, "distinguish": distinguish, "hint": hint, "mid": mid };
                   }
@@ -7063,7 +7192,6 @@
                       }
                     }
                   }
-                  Logger.log("info", "qrcocd insert：element", element);
                   if (element && qrcodeData) {
                     qrcodeResult = { "element": element, "html": html, "iden": iden, "qrcodeData": qrcodeData, "distinguish": distinguish };
                   }
@@ -7208,7 +7336,6 @@
                     yield this.search(items, marketplace);
                   }
                 } catch (e) {
-                  Logger.log("error", "pickUpItems: ", e);
                 }
               });
             },
@@ -7303,7 +7430,6 @@
                     resolve("complete");
                   });
                 } catch (e) {
-                  Logger.log("error", "createItemHtml: ", e);
                   resolve("exception");
                 }
               });
@@ -7356,12 +7482,10 @@
                   return;
                 const marketplace = Ebay.getMarketplace(window.location.href);
                 const confString = yield ItemSearchBaseObj.requestConf();
-                Logger.log("info", "conf ======>", confString);
                 if (!confString) {
                   return;
                 }
                 const selectors = ItemSearchBaseObj.pickupGoodsItem(this.currentPlatform, confString);
-                Logger.log("info", "search coupon selectors======>", selectors);
                 setInterval(() => __async$d(this, null, function* () {
                   if (this.loopIsComplete) {
                     this.loopIsComplete = false;
@@ -7479,7 +7603,6 @@
                     }
                   }
                 } catch (e) {
-                  Logger.log("info", "request,exception", e);
                 }
                 const titleTag = ".pdp-mod-product-badge-title";
                 const priceTag = ".pdp-product-price >span";
@@ -7564,7 +7687,6 @@
                     yield this.search(items, marketplace);
                   }
                 } catch (e) {
-                  Logger.log("error", "pickUpItems: ", e);
                 }
               });
             },
@@ -7644,7 +7766,6 @@
                     resolve("complete");
                   });
                 } catch (e) {
-                  Logger.log("error", "createItemHtml: ", e);
                   resolve("exception");
                 }
               });
@@ -7672,13 +7793,10 @@
                   return;
                 const marketplace = Lazada.getMarketplace(window.location.href);
                 const confString = yield ItemSearchBaseObj.requestConf();
-                Logger.log("info", "conf ======>", confString);
-                Logger.log("info", "marketplace ======>", marketplace);
                 if (!confString) {
                   return;
                 }
                 const selectors = ItemSearchBaseObj.pickupGoodsItem(this.currentPlatform, confString);
-                Logger.log("info", "search coupon selectors======>", selectors);
                 setInterval(() => __async$b(this, null, function* () {
                   if (this.loopIsComplete) {
                     this.loopIsComplete = false;
@@ -7744,7 +7862,6 @@
                     yield this.detailAnalyze(json, marketplace);
                   }
                 } catch (e) {
-                  Logger.log("info", "request,exception", e);
                 }
                 const titleTag = ".sku-title";
                 const priceTag = ".priceView-customer-price >span";
@@ -7760,7 +7877,6 @@
                   const { handler, css, html, templateId, distinguish } = json.data;
                   GM_addStyle(css);
                   const element = yield Tools.mustGetElement(handler);
-                  Logger.log("info", "coupon insert：element", element);
                   if (element) {
                     couponResult = { "element": element, "html": html, "templateId": templateId, "distinguish": distinguish };
                   }
@@ -7788,7 +7904,6 @@
                       }
                     }
                   }
-                  Logger.log("info", "qrcocd insert：element", element);
                   if (element && qrcodeData) {
                     qrcodeResult = { "element": element, "html": html, "iden": iden, "qrcodeData": qrcodeData, "distinguish": distinguish };
                   }
@@ -7915,7 +8030,6 @@
                     yield this.search(items, marketplace);
                   }
                 } catch (e) {
-                  Logger.log("error", "pickUpItems: ", e);
                 }
               });
             },
@@ -8006,7 +8120,6 @@
                     resolve("complete");
                   });
                 } catch (e) {
-                  Logger.log("error", "createItemHtml: ", e);
                   resolve("exception");
                 }
               });
@@ -8059,12 +8172,10 @@
                   return;
                 const marketplace = Bestbuy.getMarketplace(window.location.href);
                 const confString = yield ItemSearchBaseObj.requestConf();
-                Logger.log("info", "conf ======>", confString);
                 if (!confString) {
                   return;
                 }
                 const selectors = ItemSearchBaseObj.pickupGoodsItem(this.currentPlatform, confString);
-                Logger.log("info", "search coupon selectors======>", selectors);
                 setInterval(() => __async$9(this, null, function* () {
                   if (this.loopIsComplete) {
                     this.loopIsComplete = false;
@@ -8164,7 +8275,6 @@
                     yield this.detailAnalyze(json, marketplace);
                   }
                 } catch (e) {
-                  Logger.log("info", "request,exception", e);
                 }
                 const titleTag = ".product-title-text";
                 const priceTag = ".newbie-price";
@@ -8184,7 +8294,6 @@
                   }
                   GM_addStyle(css);
                   const element = yield Tools.mustGetElement(handler);
-                  Logger.log("info", "coupon insert：element", element);
                   if (element) {
                     couponResult = { "element": element, "html": html, "templateId": templateId, "distinguish": distinguish, "hint": hint, "mid": mid };
                   }
@@ -8212,7 +8321,6 @@
                       }
                     }
                   }
-                  Logger.log("info", "qrcocd insert：element", element);
                   if (element && qrcodeData) {
                     qrcodeResult = { "element": element, "html": html, "iden": iden, "qrcodeData": qrcodeData, "distinguish": distinguish };
                   }
@@ -8345,7 +8453,6 @@
                     yield this.search(items, marketplace, lang, currency);
                   }
                 } catch (e) {
-                  Logger.log("error", "pickUpItems: ", e);
                 }
               });
             },
@@ -8436,7 +8543,6 @@
                     resolve("complete");
                   });
                 } catch (e) {
-                  Logger.log("error", "createItemHtml: ", e);
                   resolve("exception");
                 }
               });
@@ -8482,12 +8588,10 @@
                 const marketplace = Banggood.getMarketplace(window.location.href);
                 const lang = Banggood.getLang();
                 const confString = yield ItemSearchBaseObj.requestConf();
-                Logger.log("info", "conf ======>", confString);
                 if (!confString) {
                   return;
                 }
                 const selectors = ItemSearchBaseObj.pickupGoodsItem(this.currentPlatform, confString);
-                Logger.log("info", "search coupon selectors======>", selectors);
                 setInterval(() => __async$7(this, null, function* () {
                   if (this.loopIsComplete) {
                     this.loopIsComplete = false;
@@ -9093,7 +9197,6 @@
                   const elements = document.querySelectorAll(expandCodeBoxSelectors[i]);
                   for (let j = 0; j < elements.length; j++) {
                     let element = elements[j];
-                    Logger.log("info", "expand element##############", element);
                     element.click();
                     result = yield new Promise((resolveInner) => {
                       setTimeout(() => {
@@ -9114,12 +9217,9 @@
             },
             isPrepared: function(supportData) {
               return new Promise((resolve) => {
-                Logger.log("info", "##############", "step 1: Verify that the container exists");
                 Tools.waitForElementByInterval(supportData.promoContainerSelector, document.body, true, 50, 5 * 1e3).then((promoContainerElement) => {
                   if (promoContainerElement) {
-                    Logger.log("info", "##############", "step 2: Verify whether the code input box needs to be expanded");
                     this._tryClickExpand(supportData).then((result) => {
-                      Logger.log("info", "##############", "step 3: Expanded result", result);
                       resolve(result);
                     });
                   } else {
@@ -9134,8 +9234,6 @@
           const AutoDetectUtil = {
             validate: function(platform, supportData) {
               return __async$2(this, null, function* () {
-                Logger.log("info", "platform=========>", platform);
-                Logger.log("info", "supportData=========>", supportData);
                 const preparedData = {
                   "result": false
                 };
@@ -9143,7 +9241,6 @@
                   const isPrepared = yield DetectHelper.isPrepared(supportData);
                   preparedData.result = isPrepared;
                 }
-                Logger.log("info", "validate data=========>", preparedData);
                 return preparedData;
               });
             },
@@ -9584,7 +9681,6 @@
                   }
                 } catch (e) {
                 }
-                Logger.log("info", "detect info json=========>", infoJson);
                 if (!infoJson)
                   return;
                 const couponTotal = infoJson["coupon_total"];
@@ -9686,13 +9782,11 @@
             wish: function() {
             },
             unknown: function() {
-              Logger.log("error", "Hoooo，This method was not found");
             },
             start: function() {
               const platform = Tools.getEcommercePlatform();
               if (platform) {
                 LangueUtil.initLangueDataMap().then(() => {
-                  Logger.log("info", "init langue ==========>", "complete!");
                   StyleUtil.init();
                   try {
                     if (typeof this[platform] === "function") {
@@ -9966,9 +10060,16 @@
               if (platform.support_append || !!sessionStorage.getItem(storageKey)) {
                 self.temporary(platform);
               } else {
-                if (window.location.pathname == platform.target) {
-                  sessionStorage.setItem(storageKey, "true");
-                  window.location.href = platform.promo_link;
+                const pathname = window.location.pathname;
+                const targets = platform.targets;
+                if (targets) {
+                  for (let i = 0; i < targets.length; i++) {
+                    if (new RegExp(targets[i].match.replace(/\\\\/g, "\\"), "i").test(pathname)) {
+                      sessionStorage.setItem(storageKey, "true");
+                      window.location.href = platform.promo_link;
+                      break;
+                    }
+                  }
                 }
               }
             }
